@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KenChat - Beta v1</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
+  body { background:#0a0a0a; color:#eee; height:100vh; overflow:hidden; }
+  .hidden { display:none !important; }
+  button { cursor:pointer; border:none; border-radius:8px; padding:10px 16px; font-size:14px; background:#fff; color:#000; font-weight:600; transition:.2s; }
+  button:hover { opacity:.85; }
+  input, textarea { width:100%; padding:12px; border-radius:8px; border:1px solid #333; background:#111; color:#eee; font-size:14px; margin:8px 0; }
+  .btn-dark { background:#222; color:#fff; }
+  .btn-outline { background:transparent; color:#fff; border:1px solid #444; }
+  .btn-red { background:#ff3b3b; color:#fff; }
+  .btn-green { background:#22c55e; color:#fff; }
+  .center { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:20px; }
+  .card { background:#141414; border:1px solid #262626; border-radius:16px; padding:24px; width:100%; max-width:380px; }
+  .title { font-size:24px; font-weight:800; text-align:center; margin-bottom:8px; letter-spacing:1px; }
+  .subtitle { text-align:center; color:#888; font-size:13px; margin-bottom:20px; }
+  .switch-link { text-align:center; margin-top:14px; font-size:13px; color:#aaa; }
+  .switch-link span { color:#fff; text-decoration:underline; cursor:pointer; }
+  .error { color:#ff5c5c; font-size:13px; text-align:center; margin-top:10px; }
+  .success { color:#4ade80; font-size:13px; text-align:center; margin-top:10px; }
+  #app { display:flex; flex-direction:column; height:100vh; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#111; border-bottom:1px solid #262626; }
+  .logo { font-weight:800; font-size:18px; letter-spacing:1px; }
+  .topbar .menu-btn { background:transparent; color:#fff; font-size:20px; padding:4px 8px; }
+  .content { flex:1; overflow-y:auto; padding:16px; }
+  #videoScreen { display:flex; flex-direction:column; height:100vh; background:#000; position:relative; }
+  #videoScreen video { flex:1; width:100%; object-fit:contain; }
+  .skip-btn { position:absolute; top:20px; right:20px; background:rgba(0,0,0,.6); color:#fff; border:1px solid #555; padding:8px 14px; border-radius:20px; font-size:13px; z-index:5; }
+  .video-overlay-text { position:absolute; top:20px; left:20px; color:#fff; font-weight:800; font-size:16px; z-index:5; letter-spacing:1px; }
+  .chat-item { display:flex; align-items:center; gap:12px; padding:12px; border-radius:12px; cursor:pointer; }
+  .chat-item:hover { background:#1a1a1a; }
+  .avatar { width:44px; height:44px; border-radius:50%; background:#333; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; overflow:hidden; }
+  .avatar img { width:100%; height:100%; object-fit:cover; }
+  .chat-info { flex:1; }
+  .chat-name { font-weight:600; font-size:15px; }
+  .chat-last { font-size:12px; color:#888; }
+  #chatRoom { display:flex; flex-direction:column; height:100vh; }
+  .room-header { display:flex; align-items:center; gap:10px; padding:10px 16px; background:#111; border-bottom:1px solid #262626; }
+  .room-header .back { background:transparent; color:#fff; font-size:22px; padding:4px 8px; }
+  .messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:75%; padding:10px 14px; border-radius:14px; font-size:14px; word-wrap:break-word; }
+  .msg.me { align-self:flex-end; background:#fff; color:#000; }
+  .msg.them { align-self:flex-start; background:#222; color:#eee; }
+  .msg img, .msg video { max-width:100%; border-radius:10px; margin-top:4px; }
+  .input-bar { display:flex; gap:8px; padding:12px; background:#111; border-top:1px solid #262626; align-items:center; }
+  .input-bar input { margin:0; flex:1; }
+  .icon-btn { background:transparent; color:#fff; font-size:20px; padding:6px; }
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.8); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .modal { background:#141414; border:1px solid #262626; border-radius:16px; padding:22px; width:100%; max-width:420px; max-height:85vh; overflow-y:auto; }
+  .modal h3 { margin-bottom:14px; font-size:18px; }
+  .modal p { color:#aaa; font-size:13px; margin-bottom:12px; }
+  .list-item { padding:12px; background:#1a1a1a; border-radius:8px; margin-bottom:8px; cursor:pointer; border:1px solid #262626; font-size:14px; }
+  .list-item:hover { background:#222; }
+  .list-item.danger { color:#ff5c5c; }
+  .profile-big { width:80px; height:80px; border-radius:50%; background:#333; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; margin:0 auto 12px; overflow:hidden; }
+  .profile-big img { width:100%; height:100%; object-fit:cover; }
+  .verified-badge { color:#fff; background:#000; border:1px solid #fff; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; margin-left:4px; }
+  .qr-img { width:100%; border-radius:8px; margin:10px 0; }
+  #blockScreen { position:fixed; inset:0; background:#0a0a0a; display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; }
+  .block-card { background:#141414; border:1px solid #ff3b3b; border-radius:16px; padding:28px; max-width:400px; width:100%; text-align:center; }
+  .block-icon { font-size:48px; margin-bottom:12px; }
+  .block-title { font-size:22px; font-weight:800; color:#ff3b3b; margin-bottom:12px; }
+  .block-text { font-size:14px; color:#ccc; line-height:1.6; margin-bottom:16px; }
+  .block-card a { color:#fff; text-decoration:underline; word-break:break-word; }
+  .badge-count { background:#ff3b3b; color:#fff; border-radius:10px; padding:2px 8px; font-size:11px; margin-left:6px; }
+  .owner-badge { background:#fff; color:#000; border-radius:6px; padding:2px 6px; font-size:10px; font-weight:800; margin-left:6px; }
+  .notif-item { background:#1a1a1a; border:1px solid #262626; border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; }
+  .notif-item b { color:#fff; }
+  .notif-item .meta { color:#777; font-size:11px; margin-top:4px; }
+  .row { display:flex; gap:8px; margin-top:8px; }
+  .row button { flex:1; font-size:12px; padding:8px; }
+</style>
+</head>
+<body>
+
+<!-- LAYAR BLOKIR -->
+<div id="blockScreen" class="hidden">
+  <div class="block-card">
+    <div class="block-icon">🚫</div>
+    <div class="block-title">Akun Anda Dibekukan</div>
+    <div class="block-text">
+      Akun Anda telah dibekukan karena melanggar aturan KenChat.<br><br>
+      Untuk mengajukan banding, hubungi moderator:
+    </div>
+    <div class="block-text" id="blockContact"></div>
+    <button class="btn-red" style="width:100%;margin-bottom:8px" onclick="requestUnbanFromBlock()">📩 Ajukan Buka Akun</button>
+    <button class="btn-outline" style="width:100%" onclick="logoutBlock()">Keluar</button>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="authScreen" class="center hidden">
+  <div class="card">
+    <div class="title" id="authTitle">KenChat</div>
+    <div class="subtitle" id="authSubtitle">Beta / v1 — by @clikusngua</div>
+    <div id="authForm"></div>
+    <div id="authMsg"></div>
+  </div>
+</div>
+
+<!-- VIDEO -->
+<div id="videoScreen" class="hidden">
+  <div class="video-overlay-text" id="videoOverlayTitle">KenChat</div>
+  <button class="skip-btn" id="skipBtn" onclick="skipVideo()">Skip</button>
+  <video id="introVideo" autoplay playsinline></video>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div class="logo" id="appLogo">KenChat</div>
+    <button class="menu-btn" onclick="openMenu()">⋮</button>
+  </div>
+  <div class="content" id="mainContent"></div>
+</div>
+
+<!-- CHAT ROOM -->
+<div id="chatRoom" class="hidden">
+  <div class="room-header">
+    <button class="back" onclick="closeChat()">←</button>
+    <div class="avatar" id="roomAvatar">?</div>
+    <div style="flex:1">
+      <div class="chat-name" id="roomName">-</div>
+      <div class="chat-last" id="roomStatus">online</div>
+    </div>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="input-bar">
+    <input type="text" id="msgInput" placeholder="Ketik pesan..." onkeypress="if(event.key==='Enter')sendMsg()">
+    <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+    <button class="icon-btn" onclick="sendMsg()">➤</button>
+  </div>
+  <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="sendFile(event)">
+</div>
+
+<div id="modalContainer"></div>
+
+<!-- SUPABASE CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* ============================================================
+   CONFIG (inline — was config.js)
+   ============================================================ */
+const CONFIG = {
+  appName: "KenChat",
+  version: "Beta / v1",
+  author: "@clikusngua",
+  ownerUsername: "KENZI",
+
+  // ===== SUPABASE =====
+  supabaseUrl: "https://wzssnadyorcktkuahjcl.supabase.co",
+  supabaseAnonKey: "sb_publishable_Spr0ihvZ4USSor7ygxdoCg_iChBQ9tY",
+
+  // ===== VIDEO & QR =====
+  introVideoUrl: "https://files.catbox.moe/dzbmsw.mp4",
+  introMaxSeconds: 60,
+  qrPaymentUrl: "https://files.catbox.moe/0ds93x.jpg",
+  verifiedPrice: "Rp 5.000",
+
+  // ===== KONTAK =====
+  appealTelegram: "https://t.me/helpkenzibot",
+  appealTelegramName: "@helpkenzibot",
+  csTelegram: "https://t.me/clikusngua",
+  csTelegramName: "@clikusngua"
+};
+
+/* ============================================================
+   DATABASE (inline — was database.js)
+   ============================================================ */
+const supabase = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+
+const SESSION_KEY = 'kencat_session';
+function getSession() { return localStorage.getItem(SESSION_KEY); }
+function setSession(u) { localStorage.setItem(SESSION_KEY, u); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+async function dbGetUser(username) {
+  const { data, error } = await supabase.from('users').select('*').eq('username', username).maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+async function dbCreateUser(username, password) {
+  const { error } = await supabase.from('users').insert({ username, password });
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: "Username sudah dipakai" };
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+async function dbLogin(username, password) {
+  const user = await dbGetUser(username);
+  if (!user) return { ok: false, error: "Username atau password salah" };
+  if (user.password !== password) return { ok: false, error: "Username atau password salah" };
+  if (user.frozen) return { ok: false, frozen: true };
+  setSession(username);
+  return { ok: true, user };
+}
+async function dbUpdateUser(username, patch) {
+  const { error } = await supabase.from('users').update(patch).eq('username', username);
+  return !error;
+}
+async function dbChangeUsername(oldName, newName) {
+  const { error } = await supabase.from('users').update({ username: newName }).eq('username', oldName);
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: "Username sudah dipakai" };
+    return { ok: false, error: error.message };
+  }
+  await supabase.from('friends').update({ user1: newName }).eq('user1', oldName);
+  await supabase.from('friends').update({ user2: newName }).eq('user2', oldName);
+  await supabase.from('messages').update({ sender: newName }).eq('sender', oldName);
+  await supabase.from('messages').update({ receiver: newName }).eq('receiver', oldName);
+  setSession(newName);
+  return { ok: true };
+}
+
+async function dbAddFriend(myUsername, targetUsername) {
+  if (myUsername === targetUsername) return { ok: false, error: "Tidak bisa diri sendiri" };
+  const target = await dbGetUser(targetUsername);
+  if (!target) return { ok: false, error: "Username tidak ditemukan" };
+  const { error } = await supabase.from('friends').insert({ user1: myUsername, user2: targetUsername });
+  if (error) return { ok: false, error: "Sudah berteman" };
+  return { ok: true };
+}
+async function dbGetFriends(username) {
+  const { data } = await supabase.from('friends').select('*').or(`user1.eq.${username},user2.eq.${username}`);
+  if (!data) return [];
+  return data.map(f => f.user1 === username ? f.user2 : f.user1);
+}
+async function dbIsFriend(myUsername, targetUsername) {
+  const { data } = await supabase.from('friends').select('*')
+    .or(`and(user1.eq.${myUsername},user2.eq.${targetUsername}),and(user1.eq.${targetUsername},user2.eq.${myUsername})`);
+  return data && data.length > 0;
+}
+
+async function dbPushMessage(from, to, msg) {
+  const { error } = await supabase.from('messages').insert({
+    sender: from, receiver: to, type: msg.type || 'text', text: msg.text || '', url: msg.url || ''
+  });
+  return !error;
+}
+async function dbGetMessages(user1, user2) {
+  const { data } = await supabase.from('messages').select('*')
+    .or(`and(sender.eq.${user1},receiver.eq.${user2}),and(sender.eq.${user2},receiver.eq.${user1})`)
+    .order('created_at', { ascending: true });
+  return data || [];
+}
+
+async function dbAddReport(reporter, target, reason) {
+  await supabase.from('reports').insert({ reporter, target, reason });
+}
+async function dbGetReports() {
+  const { data } = await supabase.from('reports').select('*').order('id', { ascending: false });
+  return data || [];
+}
+async function dbResolveReport(id) {
+  await supabase.from('reports').update({ resolved: true }).eq('id', id);
+}
+async function dbAddPayment(username) {
+  await supabase.from('payments').insert({ username });
+}
+async function dbGetPayments() {
+  const { data } = await supabase.from('payments').select('*').order('id', { ascending: false });
+  return data || [];
+}
+async function dbAddUnbanRequest(username, note) {
+  await supabase.from('unbans').insert({ username, note });
+}
+async function dbGetUnbans() {
+  const { data } = await supabase.from('unbans').select('*').order('id', { ascending: false });
+  return data || [];
+}
+async function dbFreezeUser(username, reason) {
+  const { error } = await supabase.from('users').update({ frozen: true, frozen_reason: reason || "Melanggar aturan" }).eq('username', username);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+async function dbUnfreezeUser(username) {
+  await supabase.from('users').update({ frozen: false, frozen_reason: '' }).eq('username', username);
+  await supabase.from('unbans').update({ resolved: true }).eq('username', username);
+  return { ok: true };
+}
+async function dbVerifyUser(username) {
+  await supabase.from('users').update({ verified: true, premium: true }).eq('username', username);
+  await supabase.from('payments').update({ resolved: true }).eq('username', username);
+  return { ok: true };
+}
+async function countOwnerNotif() {
+  const [r, p, u] = await Promise.all([
+    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('resolved', false),
+    supabase.from('payments').select('*', { count: 'exact', head: true }).eq('resolved', false),
+    supabase.from('unbans').select('*', { count: 'exact', head: true }).eq('resolved', false)
+  ]);
+  return (r.count || 0) + (p.count || 0) + (u.count || 0);
+}
+async function dbGetAllUsers() {
+  const { data } = await supabase.from('users').select('*').order('username');
+  return data || [];
+}
+
+/* ============================================================
+   APP LOGIC (was inline in index.html)
+   ============================================================ */
+let currentUser = null;
+let activeChat = null;
+
+function applyBranding() {
+  document.title = CONFIG.appName + " - " + CONFIG.version;
+  document.getElementById('authTitle').textContent = CONFIG.appName;
+  document.getElementById('authSubtitle').textContent = CONFIG.version + " — by " + CONFIG.author;
+  document.getElementById('appLogo').textContent = CONFIG.appName;
+  document.getElementById('videoOverlayTitle').textContent = CONFIG.appName;
+  document.getElementById('introVideo').src = CONFIG.introVideoUrl;
+  document.getElementById('blockContact').innerHTML =
+    `💬 Telegram: <a href="${CONFIG.appealTelegram}" target="_blank">${CONFIG.appealTelegramName}</a><br>
+     🌐 <a href="${CONFIG.appealTelegram}" target="_blank">${CONFIG.appealTelegram}</a>`;
+}
+function hideAll() {
+  ['authScreen','videoScreen','app','chatRoom','blockScreen'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+}
+function showNotification(text) {
+  const n = document.createElement('div');
+  n.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.4);max-width:90%;text-align:center';
+  n.textContent = text; document.body.appendChild(n);
+  setTimeout(() => n.remove(), 4000);
+}
+function closeModal() { document.getElementById('modalContainer').innerHTML = ''; }
+
+/* AUTH */
+function renderAuth() {
+  hideAll();
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('authForm').innerHTML = `
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button style="width:100%;margin-top:8px" onclick="doLogin()">Masuk</button>
+    <div class="switch-link">Belum punya akun? <span onclick="renderRegister()">Buat Akun</span></div>
+  `;
+  document.getElementById('authMsg').innerHTML = '';
+}
+function renderRegister() {
+  document.getElementById('authForm').innerHTML = `
+    <input id="regUser" placeholder="Username baru">
+    <input id="regPass" type="password" placeholder="Password">
+    <button style="width:100%;margin-top:8px" onclick="doRegister()">Daftar</button>
+    <div class="switch-link">Sudah punya akun? <span onclick="renderAuth()">Masuk</span></div>
+  `;
+  document.getElementById('authMsg').innerHTML = '';
+}
+async function doRegister() {
+  const u = document.getElementById('regUser').value.trim();
+  const p = document.getElementById('regPass').value.trim();
+  const msg = document.getElementById('authMsg');
+  if (!u || !p) { msg.innerHTML = '<div class="error">Isi username & password!</div>'; return; }
+  msg.innerHTML = '<div style="text-align:center;color:#aaa">Memproses...</div>';
+  const res = await dbCreateUser(u, p);
+  if (!res.ok) { msg.innerHTML = `<div class="error">${res.error}</div>`; return; }
+  msg.innerHTML = '<div class="success">Akun berhasil dibuat! Silakan masuk.</div>';
+  setTimeout(renderAuth, 1200);
+}
+async function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const msg = document.getElementById('authMsg');
+  msg.innerHTML = '<div style="text-align:center;color:#aaa">Memproses...</div>';
+  const res = await dbLogin(u, p);
+  if (res.frozen) { showBlockScreen(); return; }
+  if (!res.ok) { msg.innerHTML = `<div class="error">${res.error}</div>`; return; }
+  currentUser = res.user;
+  startVideo();
+}
+function showBlockScreen() { hideAll(); document.getElementById('blockScreen').classList.remove('hidden'); }
+function logoutBlock() { clearSession(); renderAuth(); }
+async function requestUnbanFromBlock() {
+  const u = prompt('Masukkan username Anda:');
+  if (!u) return;
+  const note = prompt('Alasan banding (singkat):') || '';
+  await dbAddUnbanRequest(u.trim(), note);
+  showNotification('📩 Permintaan buka akun terkirim ke moderator.');
+}
+
+/* VIDEO */
+function startVideo() {
+  hideAll();
+  document.getElementById('videoScreen').classList.remove('hidden');
+  const vid = document.getElementById('introVideo');
+  vid.onended = () => showVideoEnd();
+  vid.play().catch(()=>{});
+  setTimeout(() => {
+    if (!document.getElementById('videoScreen').classList.contains('hidden')) showVideoEnd();
+  }, (CONFIG.introMaxSeconds || 60) * 1000);
+}
+function showVideoEnd() {
+  document.getElementById('videoScreen').classList.add('hidden');
+  enterApp();
+}
+function skipVideo() { showVideoEnd(); }
+
+/* MAIN */
+async function enterApp() {
+  hideAll();
+  document.getElementById('app').classList.remove('hidden');
+  await renderMain();
+}
+async function refreshUser() {
+  const s = getSession();
+  if (!s) { renderAuth(); return false; }
+  currentUser = await dbGetUser(s);
+  if (!currentUser) { clearSession(); renderAuth(); return false; }
+  if (currentUser.frozen) { showBlockScreen(); return false; }
+  return true;
+}
+async function renderMain() {
+  if (!await refreshUser()) return;
+  const me = currentUser;
+  const friends = await dbGetFriends(me.username);
+  let html = '';
+  if (me.verified) html += `<div style="text-align:center;padding:8px;border:1px solid #fff;border-radius:12px;margin-bottom:12px;font-size:13px;">✓ Akun Premium ${CONFIG.appName}</div>`;
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <b>Chat</b>
+    <button class="btn-outline" style="padding:6px 10px;font-size:12px" onclick="openAddFriend()">+ Tambah Teman</button>
+  </div>`;
+  if (friends.length === 0) {
+    html += `<div style="text-align:center;color:#666;padding:40px 0;font-size:14px;">Belum ada teman.<br>Tekan "+ Tambah Teman" untuk mulai.</div>`;
+  } else {
+    for (const f of friends) {
+      const fu = await dbGetUser(f); if (!fu) continue;
+      const last = 'Ketuk untuk chat';
+      const badge = fu.verified ? ' <span class="verified-badge">✓</span>' : '';
+      html += `<div class="chat-item" onclick="openChat('${f}')">
+        <div class="avatar">${fu.photo ? `<img src="${fu.photo}">` : fu.username[0]}</div>
+        <div class="chat-info"><div class="chat-name">${fu.username}${badge}</div><div class="chat-last">${last}</div></div>
+      </div>`;
+    }
+  }
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+/* MENU */
+async function openMenu() {
+  const isOwner = currentUser.username === CONFIG.ownerUsername;
+  const notifCount = isOwner ? await countOwnerNotif() : 0;
+  let html = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>Menu</h3>`;
+  if (isOwner) {
+    html += `<div class="list-item" onclick="openOwnerPanel()" style="border-color:#fff">
+      👑 Menu Owner ${notifCount ? `<span class="badge-count">${notifCount}</span>` : ''}
+      <div style="font-size:11px;color:#888;margin-top:2px">Laporan · Bukti TF · Buka Akun · Bekukan User</div>
+    </div>`;
+  }
+  html += `<div class="list-item" onclick="openProfile()">👤 Profil Saya</div>
+    <div class="list-item" onclick="openPrivacy()">🔒 Privasi Akun</div>
+    <div class="list-item danger" onclick="doLogout()">🚪 Keluar</div>
+    <button class="btn-dark" style="width:100%;margin-top:8px" onclick="closeModal()">Tutup</button>
+    </div></div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+function doLogout() { clearSession(); closeModal(); renderAuth(); }
+
+/* OWNER PANEL */
+async function openOwnerPanel() {
+  const notif = await countOwnerNotif();
+  const reports = (await dbGetReports()).filter(r => !r.resolved).length;
+  const payments = (await dbGetPayments()).filter(p => !p.resolved).length;
+  const unbans = (await dbGetUnbans()).filter(u => !u.resolved).length;
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>👑 Menu Owner ${notif ? `<span class="badge-count">${notif}</span>` : ''}</h3>
+        <div class="list-item" onclick="openReportsList()">🚩 Daftar Laporan ${reports?`<span class="badge-count">${reports}</span>`:''}</div>
+        <div class="list-item" onclick="openPaymentsList()">💸 Bukti TF Centang Biru ${payments?`<span class="badge-count">${payments}</span>`:''}</div>
+        <div class="list-item" onclick="openUnbansList()">📩 Permintaan Buka Akun ${unbans?`<span class="badge-count">${unbans}</span>`:''}</div>
+        <div class="list-item" onclick="openFreezePanel()" style="border-color:#ff3b3b">🚫 Bekukan User</div>
+        <div class="list-item" onclick="openUnfreezePanel()" style="border-color:#22c55e">✅ Buka Beku User</div>
+        <div class="list-item" onclick="openUserList()">📋 Daftar Semua User</div>
+        <button class="btn-dark" style="width:100%;margin-top:8px" onclick="closeModal()">Tutup</button>
+      </div>
+    </div>`;
+}
+async function openReportsList() {
+  const list = await dbGetReports();
+  let html = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>🚩 Daftar Laporan</h3>`;
+  if (!list.length) html += `<p>Belum ada laporan.</p>`;
+  else list.forEach(r => {
+    html += `<div class="notif-item"><b>#${r.id} — ${r.target}</b> ${r.resolved?'✅':'🟡'}
+      <div>Pelapor: ${r.reporter}</div><div>Alasan: <b>${r.reason}</b></div>
+      <div class="meta">${new Date(r.created_at).toLocaleString('id-ID')}</div>
+      ${!r.resolved?`<div class="row"><button class="btn-red" onclick="ownerFreezeFromReport('${r.target}')">🚫 Bekukan</button><button class="btn-green" onclick="ownerResolveReport(${r.id})">✅ Selesai</button></div>`:''}
+    </div>`;
+  });
+  html += `<button class="btn-dark" style="width:100%;margin-top:8px" onclick="openOwnerPanel()">← Kembali</button></div></div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+async function ownerResolveReport(id) { await dbResolveReport(id); openReportsList(); }
+async function ownerFreezeFromReport(username) {
+  const reason = prompt(`Alasan beku ${username}:`, "Melanggar aturan");
+  if (reason === null) return;
+  await dbFreezeUser(username, reason);
+  showNotification(`🚫 ${username} dibekukan`);
+  openReportsList();
+}
+async function openPaymentsList() {
+  const list = await dbGetPayments();
+  let html = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>💸 Bukti TF</h3>`;
+  if (!list.length) html += `<p>Belum ada bukti TF.</p>`;
+  else list.forEach(p => {
+    html += `<div class="notif-item"><b>#${p.id} — ${p.username}</b> ${p.resolved?'✅':'🟡'}
+      <div class="meta">${new Date(p.created_at).toLocaleString('id-ID')}</div>
+      ${!p.resolved?`<div class="row"><button class="btn-green" onclick="ownerVerify(${p.id},'${p.username}')">✓ Beri Centang Biru</button></div>`:''}
+    </div>`;
+  });
+  html += `<button class="btn-dark" style="width:100%;margin-top:8px" onclick="openOwnerPanel()">← Kembali</button></div></div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+async function ownerVerify(id, username) {
+  await dbVerifyUser(username);
+  showNotification(`✅ ${username} terverifikasi`);
+  openPaymentsList();
+}
+async function openUnbansList() {
+  const list = await dbGetUnbans();
+  let html = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>📩 Permintaan Buka Akun</h3>`;
+  if (!list.length) html += `<p>Belum ada permintaan.</p>`;
+  else list.forEach(r => {
+    html += `<div class="notif-item"><b>#${r.id} — ${r.username}</b> ${r.resolved?'✅':'🟡'}
+      <div>Alasan: ${r.note || '-'}</div>
+      <div class="meta">${new Date(r.created_at).toLocaleString('id-ID')}</div>
+      ${!r.resolved?`<div class="row"><button class="btn-green" onclick="ownerUnfreeze(${r.id},'${r.username}')">✅ Buka Beku</button></div>`:''}
+    </div>`;
+  });
+  html += `<button class="btn-dark" style="width:100%;margin-top:8px" onclick="openOwnerPanel()">← Kembali</button></div></div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+async function ownerUnfreeze(id, username) {
+  await dbUnfreezeUser(username);
+  await dbPushMessage(CONFIG.ownerUsername, username, {
+    from: CONFIG.ownerUsername, type:'text',
+    text: '🎉 Selamat! Akun Anda telah di-unbeku. Silakan login kembali.'
+  });
+  showNotification(`✅ ${username} di-unbeku`);
+  openUnbansList();
+}
+function openFreezePanel() {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>🚫 Bekukan User</h3>
+      <input id="freezeUser" placeholder="Username yang dibekukan">
+      <input id="freezeReason" placeholder="Alasan (opsional)">
+      <button class="btn-red" style="width:100%;margin-top:8px" onclick="doFreeze()">Bekukan</button>
+      <button class="btn-outline" style="width:100%;margin-top:8px" onclick="openOwnerPanel()">← Kembali</button>
+    </div></div>`;
+}
+async function doFreeze() {
+  const u = document.getElementById('freezeUser').value.trim();
+  const reason = document.getElementById('freezeReason').value.trim() || "Melanggar aturan";
+  if (!u) { alert('Isi username'); return; }
+  const res = await dbFreezeUser(u, reason);
+  if (res.ok) showNotification(`🚫 ${u} dibekukan`); else alert(res.error);
+  openOwnerPanel();
+}
+function openUnfreezePanel() {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>✅ Buka Beku User</h3>
+      <input id="unfreezeUser" placeholder="Username yang di-unbeku">
+      <button class="btn-green" style="width:100%;margin-top:8px" onclick="doUnfreeze()">Buka Beku</button>
+      <button class="btn-outline" style="width:100%;margin-top:8px" onclick="openOwnerPanel()">← Kembali</button>
+    </div></div>`;
+}
+async function doUnfreeze() {
+  const u = document.getElementById('unfreezeUser').value.trim();
+  if (!u) { alert('Isi username'); return; }
+  await dbUnfreezeUser(u);
+  await dbPushMessage(CONFIG.ownerUsername, u, {
+    from: CONFIG.ownerUsername, type:'text',
+    text: '🎉 Selamat! Akun Anda sudah di-unbeku. Silakan login kembali.'
+  });
+  showNotification(`✅ ${u} di-unbeku`);
+  openOwnerPanel();
+}
+async function openUserList() {
+  const users = await dbGetAllUsers();
+  let html = `<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>📋 Daftar User (${users.length})</h3>`;
+  users.forEach(u => {
+    html += `<div class="notif-item"><b>${u.username}</b> ${u.verified?'✓':''} ${u.frozen?'🚫':''}
+      <div class="meta">Bio: ${u.bio||'-'}</div>
+      <div class="row">
+        ${!u.frozen?`<button class="btn-red" onclick="ownerFreezeFromList('${u.username}')">Bekukan</button>`:`<button class="btn-green" onclick="ownerUnfreezeFromList('${u.username}')">Buka</button>`}
+        ${!u.verified?`<button class="btn-outline" onclick="ownerVerifyFromList('${u.username}')">Beri ✓</button>`:''}
+      </div></div>`;
+  });
+  html += `<button class="btn-dark" style="width:100%;margin-top:8px" onclick="openOwnerPanel()">← Kembali</button></div></div>`;
+  document.getElementById('modalContainer').innerHTML = html;
+}
+async function ownerFreezeFromList(u) {
+  const reason = prompt(`Alasan beku ${u}:`, 'Melanggar aturan');
+  if (reason === null) return;
+  await dbFreezeUser(u, reason);
+  openUserList();
+}
+async function ownerUnfreezeFromList(u) { await dbUnfreezeUser(u); openUserList(); }
+async function ownerVerifyFromList(u) { await dbVerifyUser(u); openUserList(); }
+
+/* PROFIL */
+function openProfile() {
+  const me = currentUser;
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <div class="profile-big">${me.photo?`<img src="${me.photo}">`:me.username[0]}</div>
+      <div style="text-align:center;margin-bottom:14px">
+        <b style="font-size:18px">${me.username}</b>${me.verified?'<span class="verified-badge">✓</span>':''}
+        ${me.username===CONFIG.ownerUsername?'<span class="owner-badge">OWNER</span>':''}
+        <div style="font-size:12px;color:#888;margin-top:4px">${me.bio||'Tidak ada bio'}</div>
+      </div>
+      <div class="list-item" onclick="editPhoto()">🖼️ Ganti Foto Profil</div>
+      <div class="list-item" onclick="editUsername()">✏️ Ganti Username</div>
+      <div class="list-item" onclick="editBio()">📝 Ganti Bio</div>
+      <div class="list-item" onclick="buyVerified()" style="border-color:#fff">✓ Beli Centang Biru</div>
+      <button class="btn-dark" style="width:100%;margin-top:12px" onclick="closeModal()">Tutup</button>
+    </div></div>`;
+}
+async function editPhoto() {
+  const url = prompt('URL foto profil:'); if (!url) return;
+  await dbUpdateUser(currentUser.username, { photo: url });
+  currentUser = await dbGetUser(currentUser.username);
+  openProfile(); renderMain();
+}
+async function editUsername() {
+  let nu = prompt('Username baru:'); if (!nu) return; nu = nu.trim();
+  const res = await dbChangeUsername(currentUser.username, nu);
+  if (!res.ok) { alert(res.error); return; }
+  currentUser = await dbGetUser(nu);
+  openProfile(); renderMain();
+}
+async function editBio() {
+  const bio = prompt('Bio baru:'); if (bio === null) return;
+  await dbUpdateUser(currentUser.username, { bio: bio.slice(0,100) });
+  currentUser = await dbGetUser(currentUser.username);
+  openProfile(); renderMain();
+}
+function buyVerified() {
+  if (currentUser.verified) { alert('Akun sudah terverifikasi.'); return; }
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>Beli Centang Biru</h3>
+      <p>Cukup <b>${CONFIG.verifiedPrice}</b> untuk centang biru permanen.</p>
+      <img class="qr-img" src="${CONFIG.qrPaymentUrl}">
+      <p style="text-align:center;font-size:11px;color:#666">Scan QR di atas</p>
+      <button class="btn-dark" style="width:100%;margin-top:8px" onclick="sendPaymentProof()">📤 Kirim Bukti TF</button>
+      <button class="btn-outline" style="width:100%;margin-top:8px" onclick="closeModal()">Batal</button>
+    </div></div>`;
+}
+async function sendPaymentProof() {
+  await dbAddPayment(currentUser.username);
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop"><div class="modal">
+      <h3>Bukti TF Terkirim</h3>
+      <p>✅ Berhasil! Tunggu 1–5 menit untuk verifikasi.</p>
+      <button class="btn-dark" style="width:100%;margin-top:8px" onclick="closeModal()">OK</button>
+    </div></div>`;
+}
+
+/* PRIVASI */
+function openPrivacy() {
+  const me = currentUser;
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>🔒 Privasi Akun</h3>
+      <div class="list-item" onclick="open2FA()">🔐 Verifikasi 2 Langkah<div style="font-size:11px;color:#888">${me.pin?'Aktif':'Belum aktif'}</div></div>
+      <div class="list-item" onclick="openEmail()">📧 Email Reset Password<div style="font-size:11px;color:#888">${me.email||'Belum diatur'}</div></div>
+      <div class="list-item" onclick="window.open('${CONFIG.csTelegram}','_blank')">💬 Customer Service<div style="font-size:11px;color:#888">${CONFIG.csTelegramName}</div></div>
+      <button class="btn-dark" style="width:100%;margin-top:12px" onclick="closeModal()">Tutup</button>
+    </div></div>`;
+}
+function open2FA() {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>Verifikasi 2 Langkah</h3>
+      <p>Masukkan PIN 8 digit:</p>
+      <input id="pinInput" maxlength="8" placeholder="8 digit PIN" inputmode="numeric">
+      <button style="width:100%;margin-top:8px" onclick="save2FA()">Simpan PIN</button>
+      <button class="btn-outline" style="width:100%;margin-top:8px" onclick="closeModal()">Batal</button>
+    </div></div>`;
+}
+async function save2FA() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (!/^\d{8}$/.test(pin)) { alert('PIN harus 8 digit!'); return; }
+  await dbUpdateUser(currentUser.username, { pin });
+  currentUser = await dbGetUser(currentUser.username);
+  showNotification('✅ PIN disimpan.'); closeModal(); openPrivacy();
+}
+function openEmail() {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>Email Reset Password</h3>
+      <input id="emailInput" type="email" placeholder="email@contoh.com">
+      <button style="width:100%;margin-top:8px" onclick="saveEmail()">Simpan</button>
+      <button class="btn-outline" style="width:100%;margin-top:8px" onclick="closeModal()">Batal</button>
+    </div></div>`;
+}
+async function saveEmail() {
+  const email = document.getElementById('emailInput').value.trim();
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { alert('Email tidak valid!'); return; }
+  await dbUpdateUser(currentUser.username, { email });
+  currentUser = await dbGetUser(currentUser.username);
+  showNotification('✅ Email disimpan.'); closeModal(); openPrivacy();
+}
+
+/* TAMBAH TEMAN */
+function openAddFriend() {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>Tambah Teman</h3>
+      <input id="friendUser" placeholder="Username teman">
+      <button style="width:100%;margin-top:8px" onclick="doAddFriend()">Tambah</button>
+      <button class="btn-outline" style="width:100%;margin-top:8px" onclick="closeModal()">Batal</button>
+    </div></div>`;
+}
+async function doAddFriend() {
+  const target = document.getElementById('friendUser').value.trim();
+  if (!target) { alert('Username kosong'); return; }
+  const res = await dbAddFriend(currentUser.username, target);
+  if (!res.ok) { alert(res.error); return; }
+  closeModal(); showNotification(`✅ Berhasil tambah ${target}`); renderMain();
+}
+
+/* LAPORKAN */
+function openReportModal(targetUsername) {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">
+      <h3>Laporkan ${targetUsername}</h3>
+      <div class="list-item danger" onclick="submitReport('${targetUsername}','Scam')">💸 Scam</div>
+      <div class="list-item danger" onclick="submitReport('${targetUsername}','+18')">🔞 +18</div>
+      <div class="list-item danger" onclick="submitReport('${targetUsername}','Violate')">⚠️ Melanggar</div>
+      <button class="btn-outline" style="width:100%;margin-top:8px" onclick="closeModal()">Batal</button>
+    </div></div>`;
+}
+async function submitReport(target, reason) {
+  await dbAddReport(currentUser.username, target, reason);
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop"><div class="modal">
+      <h3>Laporan Terkirim</h3>
+      <p>✅ Tunggu moderator memeriksa.</p>
+      <button class="btn-dark" style="width:100%;margin-top:8px" onclick="closeModal()">OK</button>
+    </div></div>`;
+}
+
+/* CHAT */
+async function openChat(username) {
+  activeChat = username;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('chatRoom').classList.remove('hidden');
+  const fu = await dbGetUser(username);
+  document.getElementById('roomName').innerHTML = fu.username + (fu.verified?' ✓':'') +
+    `<button class="icon-btn" style="font-size:13px;padding:2px 6px;margin-left:8px;border:1px solid #444;border-radius:6px" onclick="openReportModal('${username}')">🚩</button>`;
+  document.getElementById('roomAvatar').innerHTML = fu.photo ? `<img src="${fu.photo}">` : fu.username[0];
+  await renderMessages();
+}
+async function renderMessages() {
+  const msgs = await dbGetMessages(currentUser.username, activeChat);
+  const el = document.getElementById('messages');
+  el.innerHTML = '';
+  msgs.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'msg ' + (m.sender === currentUser.username ? 'me' : 'them');
+    if (m.type === 'image') div.innerHTML = `<img src="${m.url}">`;
+    else if (m.type === 'video') div.innerHTML = `<video src="${m.url}" controls></video>`;
+    else div.textContent = m.text;
+    el.appendChild(div);
+  });
+  el.scrollTop = el.scrollHeight;
+}
+async function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim(); if (!text) return;
+  await dbPushMessage(currentUser.username, activeChat, { type:'text', text });
+  input.value = '';
+  await renderMessages();
+}
+function sendFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const isVideo = file.type.startsWith('video');
+    await dbPushMessage(currentUser.username, activeChat, {
+      type: isVideo ? 'video' : 'image', url: reader.result
+    });
+    await renderMessages();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+function closeChat() {
+  activeChat = null;
+  document.getElementById('chatRoom').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  renderMain();
+}
+
+/* INIT */
+window.addEventListener('DOMContentLoaded', async () => {
+  applyBranding();
+  const s = getSession();
+  if (s) {
+    const u = await dbGetUser(s);
+    if (!u) { clearSession(); renderAuth(); return; }
+    if (u.frozen) { showBlockScreen(); return; }
+    currentUser = u;
+    startVideo();
+    return;
+  }
+  renderAuth();
+});
+</script>
+</body>
+</html>
